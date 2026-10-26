@@ -1,0 +1,26 @@
+{
+  "states": ["RI", "MA", "CT", "NH", "VT", "NY"],
+  "state_names": ["rhode island", "massachusetts", "connecticut", "new hampshire", "vermont", "maine", "new york"],
+  "cities": [
+    "boston", "cambridge", "somerville", "providence", "worcester", "hartford", "new haven", "stamford",
+    "norwalk", "waltham", "burlington", "andover", "marlborough", "framingham", "quincy", "lowell",
+    "new york", "brooklyn", "manhattan", "nashua", "newport", "warwick", "pawtucket", "fall river",
+    "new england", "northeast"
+  ],
+  "non_us": [
+    "canada", "united kingdom", "uk", "germany", "india", "ireland", "france", "spain", "netherlands",
+    "poland", "brazil", "mexico", "australia", "singapore", "japan", "emea", "apac", "latam", "europe",
+    "israel", "china", "philippines", "argentina", "colombia", "portugal", "italy", "sweden", "denmark",
+    "switzerland", "south africa", "nigeria", "kenya", "uae", "dubai", "ontario", "british columbia",
+    "toronto", "vancouver", "london", "berlin", "dublin", "paris", "bangalore", "bengaluru"
+  ],
+  "title_include": "\\b(industrial|process|quality|operations?|supply chain|logistics?|manufactur\\w*|production|continuous improvement|lean|six sigma|analyst|planner|planning|coordinator|specialist|project|program|associate|technician|procurement|sourcing|buyer|inventory|warehouse|fulfillment|facilities|safety|ehs|systems|data|engineer\\w*|consultant|scheduler|scheduling|optimization|forecast\\w*|demand|materials?|vendor|supplier|distribution|dispatch|fleet|compliance|reliability|maintenance|test|validation|trainee|graduate|entry[- ]level|junior|early career|intern(ship)?|apprentice)\\b",
+  "title_exclude": "\\b(senior|sr\\.?|staff|principal|director|vice president|vp|head of|chief|president|distinguished|fellow|lead|software|front[- ]?end|back[- ]?end|full[- ]?stack|devops|sre|site reliability|machine learning|ml|ai|security|data engineer|platform|infrastructure|mobile|ios|android|firmware|embedded|cloud|solutions? (architect|engineer)|sales|account executive|recruit\\w*|marketing|designer|counsel|attorney|legal|nurse|physician|clinical|pharmacist|therapist|driver|cashier|barista|bartender|cook|chef)\\b",
+  "defense_terms": [
+    "security clearance", "department of defense", "defense contractor", "munitions", "weapons system",
+    "missile", "dod contract", "itar", "top secret", "secret clearance"
+  ],
+  "max_per_board": 40,
+  "max_total": 20000,
+  "snippet_chars": 450
+}

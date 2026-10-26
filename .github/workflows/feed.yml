@@ -1,0 +1,36 @@
+name: Build job feed
+
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['data/feed-run']
+
+permissions:
+  contents: write
+
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build feed
+        run: python3 scripts/build_feed.py
+
+      - name: Publish to the feed branch
+        run: |
+          set -e
+          mkdir -p /tmp/pub
+          cp out/jobs.json out/meta.json /tmp/pub/
+          git config user.name "jobit-feed"
+          git config user.email "feed@users.noreply.github.com"
+          git checkout --orphan feed-publish
+          git rm -rf . > /dev/null
+          cp /tmp/pub/jobs.json /tmp/pub/meta.json .
+          git add jobs.json meta.json
+          git commit -m "Job feed $(date -u +%F)"
+          git push -f origin feed-publish:feed
