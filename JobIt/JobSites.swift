@@ -45,6 +45,6 @@ enum JobSites {
 extension Job {
     /// Postings fetched from company boards. Only these are replaced when the board queue refreshes.
     var isBoardJob: Bool {
-        id.hasPrefix("gh-") || id.hasPrefix("lv-")
+        id.hasPrefix("gh-") || id.hasPrefix("lv-") || id.hasPrefix("ab-") || id.hasPrefix("sr-")
     }
 }

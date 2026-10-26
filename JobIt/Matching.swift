@@ -44,11 +44,11 @@ enum Matching {
         }
 
         // Description-based checks, only for postings that survived the cheap ones.
-        let text = title + " " + company + " " + loc + " " + j.descriptionText.lowercased()
         if !c.includeKeywords.isEmpty {
-            let hit = c.includeKeywords.contains { !$0.isEmpty && text.contains($0.lowercased()) }
+            let hit = c.includeKeywords.contains { !$0.isEmpty && title.contains($0.lowercased()) }
             if !hit { return false }
         }
+        let text = title + " " + company + " " + loc + " " + j.descriptionText.lowercased()
         for term in c.blockedTerms where !term.isEmpty && text.contains(term.lowercased()) {
             return false
         }

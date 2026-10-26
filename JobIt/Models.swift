@@ -45,12 +45,8 @@ struct Criteria: Codable, Equatable {
     var sortMode: SortMode
 
     static let starter = Criteria(
-        includeKeywords: [
-            "industrial engineer", "process improvement", "continuous improvement",
-            "quality", "operations", "supply chain", "manufacturing", "logistics",
-            "data analyst", "operations research", "systems engineer", "lean"
-        ],
-        excludeKeywords: ["senior", "sr.", "sr ", "director", "principal", "staff", "vice president", "vp "],
+        includeKeywords: Criteria.defaultInclude,
+        excludeKeywords: Criteria.defaultExclude,
         locations: ["rhode island", "providence", "massachusetts", "boston", "connecticut", "remote"] + Criteria.extraLocations,
         remoteOnly: false,
         minSalary: 0,
@@ -68,6 +64,21 @@ struct Criteria: Codable, Equatable {
         ],
         sortMode: .bestFit
     )
+
+    static let defaultInclude: [String] = [
+        "industrial", "process", "quality", "operations", "supply chain", "logistics", "manufacturing",
+        "production", "continuous improvement", "lean", "analyst", "planner", "coordinator", "specialist",
+        "project", "program", "associate", "technician", "procurement", "sourcing", "buyer", "inventory",
+        "systems", "data", "engineer", "consultant", "scheduler", "optimization", "forecast"
+    ]
+
+    static let defaultExclude: [String] = [
+        "senior", "sr.", "sr ", "director", "principal", "staff", "vice president", "vp ", "manager"
+    ]
+
+    static let newLocations: [String] = [
+        "new hampshire", ", nh", "new york", ", ny", "vermont", ", vt"
+    ]
 
     /// Postings often write "Cambridge, MA" without the state name, so match these too.
     static let extraLocations: [String] = [

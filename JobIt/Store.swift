@@ -10,6 +10,7 @@ final class Store: ObservableObject {
     @Published var lastError: String?
     @Published var lastFetchTotal = 0
     @Published var lastFetchKept = 0
+    @Published var feedAvailable = true
 
     /// Set when criteria or boards change, so leaving the Criteria tab can trigger a refresh.
     var criteriaChangedSinceRefresh = false
@@ -31,6 +32,7 @@ final class Store: ObservableObject {
             data = AppData()
         }
         migrate()
+        migrateFeed()
     }
 
     /// One-time upgrades for installs that predate later versions.
@@ -39,9 +41,6 @@ final class Store: ObservableObject {
 
         if !defaults.bool(forKey: "jobit.migrated.v12") {
             defaults.set(true, forKey: "jobit.migrated.v12")
-            if data.boards.isEmpty {
-                data.boards = Board.starter
-            }
             var locations = data.criteria.locations
             for term in Criteria.extraLocations where !locations.contains(term) {
                 locations.append(term)
@@ -59,6 +58,20 @@ final class Store: ObservableObject {
             }
             data.jobs = kept
         }
+    }
+
+    private func migrateFeed() {
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: "jobit.migrated.v16") { return }
+        defaults.set(true, forKey: "jobit.migrated.v16")
+        var c = data.criteria
+        for k in Criteria.defaultInclude where !c.includeKeywords.contains(k) { c.includeKeywords.append(k) }
+        for k in Criteria.defaultExclude where !c.excludeKeywords.contains(k) { c.excludeKeywords.append(k) }
+        for k in Criteria.newLocations where !c.locations.contains(k) { c.locations.append(k) }
+        data.criteria = c
+        // The built-in company feed replaces the old 13-company preset list.
+        let starterTokens = Set(Board.starter.map { $0.token })
+        if Set(data.boards.map { $0.token }) == starterTokens { data.boards = [] }
     }
 
     private func dataDidChange(_ old: AppData) {
@@ -178,6 +191,13 @@ final class Store: ObservableObject {
 
         var found: [Job] = []
         var errors: [String] = []
+        do {
+            found += try await FeedClient.fetch()
+            feedAvailable = true
+        } catch {
+            feedAvailable = false
+            errors.append("Job feed: \(error.localizedDescription)")
+        }
         for board in data.boards {
             do {
                 found += try await JobFetcher.fetch(board)

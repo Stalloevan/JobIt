@@ -248,11 +248,11 @@ struct EmptyQueueView: View {
     @State private var showFind = false
 
     private var message: String {
-        if store.data.boards.isEmpty {
-            return "Add company boards under Criteria, or add a job you found from the menu."
-        }
         if store.isRefreshing {
             return "Loading jobs..."
+        }
+        if !store.feedAvailable && store.data.jobs.isEmpty {
+            return "Couldn't download the job feed. Check your connection and tap Refresh."
         }
         if store.lastFetchTotal > 0 && store.lastFetchKept == 0 {
             return "Checked \(store.lastFetchTotal) postings and none match your criteria. Loosen the filters under Criteria."
