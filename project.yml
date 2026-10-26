@@ -1,0 +1,32 @@
+name: JobIt
+options:
+  bundleIdPrefix: com.stalloevan
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CODE_SIGNING_ALLOWED: "NO"
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGN_IDENTITY: ""
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  JobIt:
+    type: application
+    platform: iOS
+    sources:
+      - JobIt
+    info:
+      path: Config/Info.plist
+      properties:
+        CFBundleDisplayName: JobIt
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.stalloevan.jobit
+        TARGETED_DEVICE_FAMILY: "1"
