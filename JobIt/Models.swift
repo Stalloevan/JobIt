@@ -51,7 +51,7 @@ struct Criteria: Codable {
             "data analyst", "operations research", "systems engineer", "lean"
         ],
         excludeKeywords: ["senior", "sr.", "sr ", "director", "principal", "staff", "vice president", "vp "],
-        locations: ["rhode island", "providence", "massachusetts", "boston", "connecticut", "remote"],
+        locations: ["rhode island", "providence", "massachusetts", "boston", "connecticut", "remote"] + Criteria.extraLocations,
         remoteOnly: false,
         minSalary: 0,
         minSatisfaction: 0,
@@ -68,6 +68,12 @@ struct Criteria: Codable {
         ],
         sortMode: .bestFit
     )
+
+    /// Postings often write "Cambridge, MA" without the state name, so match these too.
+    static let extraLocations: [String] = [
+        "cambridge", "somerville", "worcester", "hartford", "new haven", "stamford",
+        "new england", ", ma", ", ri", ", ct"
+    ]
 
     static let resumeSkills: [String] = [
         "python", "optimization", "simulation", "simio", "solidworks", "six sigma", "lean",
@@ -169,6 +175,24 @@ struct Board: Identifiable, Codable, Hashable {
     var kind: BoardKind
     var token: String
     var displayName: String
+
+    /// Boards checked against the live APIs on 2026-10-26; each had open roles in operations,
+    /// quality, supply chain, process or analysis.
+    static let starter: [Board] = [
+        Board(kind: .greenhouse, token: "formlabs", displayName: "Formlabs"),
+        Board(kind: .greenhouse, token: "markforged", displayName: "Markforged"),
+        Board(kind: .greenhouse, token: "ginkgobioworks", displayName: "Ginkgo Bioworks"),
+        Board(kind: .greenhouse, token: "beamtherapeutics", displayName: "Beam Therapeutics"),
+        Board(kind: .greenhouse, token: "flexport", displayName: "Flexport"),
+        Board(kind: .greenhouse, token: "instacart", displayName: "Instacart"),
+        Board(kind: .greenhouse, token: "samsara", displayName: "Samsara"),
+        Board(kind: .greenhouse, token: "toast", displayName: "Toast"),
+        Board(kind: .greenhouse, token: "carvana", displayName: "Carvana"),
+        Board(kind: .greenhouse, token: "stripe", displayName: "Stripe"),
+        Board(kind: .greenhouse, token: "affirm", displayName: "Affirm"),
+        Board(kind: .greenhouse, token: "klaviyo", displayName: "Klaviyo"),
+        Board(kind: .lever, token: "wealthfront", displayName: "Wealthfront")
+    ]
 }
 
 struct AppData: Codable {

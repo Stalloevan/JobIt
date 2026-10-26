@@ -2,77 +2,29 @@ import SwiftUI
 
 struct QueueView: View {
     @EnvironmentObject var store: Store
+    @AppStorage("queueCardMode") private var cardMode = true
     @State private var applying = false
     @State private var showAdd = false
+    @State private var didAutoRefresh = false
 
     var body: some View {
         NavigationStack {
-            List {
-                if !store.approved.isEmpty {
-                    Section("Approved (\(store.approved.count))") {
-                        Button {
-                            applying = true
-                        } label: {
-                            Label("Apply to all \(store.approved.count)", systemImage: "paperplane.fill")
-                                .font(.headline)
-                        }
-                        ForEach(store.approved) { job in
-                            JobRow(job: job)
-                                .swipeActions(edge: .trailing) {
-                                    Button {
-                                        store.unapprove(job)
-                                    } label: {
-                                        Label("Remove", systemImage: "arrow.uturn.backward")
-                                    }
-                                }
-                        }
-                    }
-                }
-
-                if let err = store.lastError {
-                    Section {
-                        Text(err).font(.footnote).foregroundStyle(.red)
-                    }
-                }
-
-                let matches = store.queue
-                Section("Today's matches (\(matches.count))") {
-                    ForEach(matches) { job in
-                        NavigationLink {
-                            JobDetailView(job: job)
-                        } label: {
-                            JobRow(job: job)
-                        }
-                        .swipeActions(edge: .leading) {
-                            Button {
-                                store.approve(job)
-                            } label: {
-                                Label("Approve", systemImage: "checkmark")
-                            }
-                            .tint(.green)
-                        }
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) {
-                                store.markUndesired(job)
-                            } label: {
-                                Label("Not for me", systemImage: "hand.thumbsdown")
-                            }
-                        }
-                    }
+            Group {
+                if cardMode {
+                    deckScreen
+                } else {
+                    listScreen
                 }
             }
-            .overlay {
-                if store.queue.isEmpty && store.approved.isEmpty {
-                    ContentUnavailableView(
-                        "No matches yet",
-                        systemImage: "tray",
-                        description: Text("Add company boards under Criteria, or add a job you found, then pull down to refresh.")
-                    )
-                }
-            }
-            .refreshable { await store.refresh() }
             .navigationTitle("Queue")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        cardMode.toggle()
+                    } label: {
+                        Image(systemName: cardMode ? "list.bullet" : "rectangle.stack")
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button {
@@ -103,7 +55,107 @@ struct QueueView: View {
             .fullScreenCover(isPresented: $applying) {
                 ApplyFlowView(jobs: store.approved)
             }
+            .task {
+                if !didAutoRefresh {
+                    didAutoRefresh = true
+                    await store.refresh()
+                }
+            }
         }
+    }
+
+    private var deckScreen: some View {
+        VStack(spacing: 0) {
+            if !store.approved.isEmpty {
+                Button {
+                    applying = true
+                } label: {
+                    Label("Apply to \(store.approved.count) approved", systemImage: "paperplane.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+            }
+            if let err = store.lastError {
+                Text(err)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal)
+            }
+            SwipeDeckView()
+        }
+    }
+
+    private var listScreen: some View {
+        List {
+            if !store.approved.isEmpty {
+                Section("Approved (\(store.approved.count))") {
+                    Button {
+                        applying = true
+                    } label: {
+                        Label("Apply to all \(store.approved.count)", systemImage: "paperplane.fill")
+                            .font(.headline)
+                    }
+                    ForEach(store.approved) { job in
+                        JobRow(job: job)
+                            .swipeActions(edge: .trailing) {
+                                Button {
+                                    store.unapprove(job)
+                                } label: {
+                                    Label("Remove", systemImage: "arrow.uturn.backward")
+                                }
+                            }
+                    }
+                }
+            }
+
+            if let err = store.lastError {
+                Section {
+                    Text(err).font(.footnote).foregroundStyle(.red)
+                }
+            }
+
+            let matches = store.queue
+            Section {
+                ForEach(matches) { job in
+                    NavigationLink {
+                        JobDetailView(job: job)
+                    } label: {
+                        JobRow(job: job)
+                    }
+                    .swipeActions(edge: .leading) {
+                        Button {
+                            store.approve(job)
+                        } label: {
+                            Label("Approve", systemImage: "checkmark")
+                        }
+                        .tint(.green)
+                    }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            store.markUndesired(job)
+                        } label: {
+                            Label("Not for me", systemImage: "hand.thumbsdown")
+                        }
+                    }
+                }
+            } header: {
+                Text("Today's matches (\(matches.count))")
+            } footer: {
+                if store.hiddenCount > 0 {
+                    Text("\(store.hiddenCount) more hidden by your criteria.")
+                }
+            }
+        }
+        .overlay {
+            if store.queue.isEmpty && store.approved.isEmpty {
+                EmptyQueueView()
+            }
+        }
+        .refreshable { await store.refresh() }
     }
 }
 

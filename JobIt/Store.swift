@@ -21,6 +21,22 @@ final class Store: ObservableObject {
         } else {
             data = AppData()
         }
+        migrate()
+    }
+
+    /// One-time upgrade for installs that predate the preset boards and wider location matching.
+    private func migrate() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: "jobit.migrated.v12") else { return }
+        defaults.set(true, forKey: "jobit.migrated.v12")
+        if data.boards.isEmpty {
+            data.boards = Board.starter
+        }
+        var locations = data.criteria.locations
+        for term in Criteria.extraLocations where !locations.contains(term) {
+            locations.append(term)
+        }
+        data.criteria.locations = locations
     }
 
     // MARK: Saving
@@ -57,6 +73,14 @@ final class Store: ObservableObject {
 
     var approved: [Job] { data.jobs.filter { $0.status == .approved } }
     var undesired: [Job] { data.jobs.filter { $0.status == .undesired } }
+
+    /// New jobs that loaded but are filtered out by the current criteria.
+    var hiddenCount: Int {
+        let c = data.criteria
+        return data.jobs.filter {
+            $0.status == .new && !Matching.passes($0, criteria: c, ratings: data.companyRatings)
+        }.count
+    }
 
     var dueFollowUps: [Application] {
         data.applications.filter { $0.isActive && $0.followUpDue <= Date() }

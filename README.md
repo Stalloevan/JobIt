@@ -5,9 +5,11 @@ in-app autofill from a local answer bank, and drafted follow-ups you approve bef
 
 ## How it works
 
-- **Queue.** Pulls jobs from Greenhouse and Lever company boards you add (Criteria, then Job boards).
-  Jobs from LinkedIn, Indeed or recruiters go in with "Add a job". Swipe right to approve, left for "not for me".
-  Sorted by fit to your skills, then fewest applicants (or newest, your choice).
+- **Queue.** Pulls jobs from Greenhouse and Lever company boards on launch and on refresh. A set of
+  boards with relevant openings is preloaded; add or remove companies under Criteria, then Job boards.
+  Jobs from LinkedIn, Indeed or recruiters go in with "Add a job". The default view is a swipe deck:
+  right to approve, left for "not for me", up for later, with buttons and undo underneath. The list icon
+  switches to a plain list. Sorted by fit to your skills, then fewest applicants (or newest, your choice).
 - **Criteria.** Include and exclude keywords, locations, remote only, minimum salary, minimum employee
   rating, a company blocklist (military contractors pre-loaded, fully editable), and blocked terms.
 - **Apply to all approved.** Opens each application inside the app. Links never leave the app: new-window
