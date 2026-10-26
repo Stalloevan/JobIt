@@ -32,7 +32,7 @@ enum SortMode: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-struct Criteria: Codable {
+struct Criteria: Codable, Equatable {
     var includeKeywords: [String]
     var excludeKeywords: [String]
     var locations: [String]

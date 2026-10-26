@@ -90,6 +90,11 @@ struct CriteriaView: View {
                 }
             }
             .navigationTitle("Criteria")
+            .onDisappear {
+                if store.criteriaChangedSinceRefresh {
+                    Task { await store.refresh() }
+                }
+            }
         }
     }
 }

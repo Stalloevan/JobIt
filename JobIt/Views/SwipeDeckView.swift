@@ -253,6 +253,9 @@ struct EmptyQueueView: View {
         if store.isRefreshing {
             return "Loading jobs..."
         }
+        if store.lastFetchTotal > 0 && store.lastFetchKept == 0 {
+            return "Checked \(store.lastFetchTotal) postings and none match your criteria. Loosen the filters under Criteria."
+        }
         if store.hiddenCount > 0 {
             return "\(store.hiddenCount) job(s) loaded, but your criteria hide them all. Loosen the filters under Criteria."
         }

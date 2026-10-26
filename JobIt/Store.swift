@@ -4,13 +4,22 @@ import SwiftUI
 @MainActor
 final class Store: ObservableObject {
     @Published var data: AppData {
-        didSet { scheduleSave() }
+        didSet { dataDidChange(oldValue) }
     }
     @Published var isRefreshing = false
     @Published var lastError: String?
+    @Published var lastFetchTotal = 0
+    @Published var lastFetchKept = 0
+
+    /// Set when criteria or boards change, so leaving the Criteria tab can trigger a refresh.
+    var criteriaChangedSinceRefresh = false
 
     private let fileURL: URL
     private var saveTask: Task<Void, Never>?
+    private var queueCache: [Job]?
+    private var hiddenCache: Int?
+    private var passCache: [String: Bool] = [:]
+    private var fitCache: [String: Int] = [:]
 
     init() {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -24,19 +33,46 @@ final class Store: ObservableObject {
         migrate()
     }
 
-    /// One-time upgrade for installs that predate the preset boards and wider location matching.
+    /// One-time upgrades for installs that predate later versions.
     private func migrate() {
         let defaults = UserDefaults.standard
-        guard !defaults.bool(forKey: "jobit.migrated.v12") else { return }
-        defaults.set(true, forKey: "jobit.migrated.v12")
-        if data.boards.isEmpty {
-            data.boards = Board.starter
+
+        if !defaults.bool(forKey: "jobit.migrated.v12") {
+            defaults.set(true, forKey: "jobit.migrated.v12")
+            if data.boards.isEmpty {
+                data.boards = Board.starter
+            }
+            var locations = data.criteria.locations
+            for term in Criteria.extraLocations where !locations.contains(term) {
+                locations.append(term)
+            }
+            data.criteria.locations = locations
         }
-        var locations = data.criteria.locations
-        for term in Criteria.extraLocations where !locations.contains(term) {
-            locations.append(term)
+
+        if !defaults.bool(forKey: "jobit.migrated.v13") {
+            defaults.set(true, forKey: "jobit.migrated.v13")
+            // v1.2 saved every fetched posting with its full text. Keep only jobs you acted on, shrunk.
+            var kept: [Job] = []
+            for var j in data.jobs where j.status != .new || j.source == "Added by me" {
+                j.descriptionText = String(j.descriptionText.prefix(2500))
+                kept.append(j)
+            }
+            data.jobs = kept
         }
-        data.criteria.locations = locations
+    }
+
+    private func dataDidChange(_ old: AppData) {
+        queueCache = nil
+        hiddenCache = nil
+        let criteriaChanged = old.criteria != data.criteria
+        if criteriaChanged || old.companyRatings != data.companyRatings || old.fitSkills != data.fitSkills {
+            passCache.removeAll()
+            fitCache.removeAll()
+        }
+        if criteriaChanged || old.boards != data.boards {
+            criteriaChangedSinceRefresh = true
+        }
+        scheduleSave()
     }
 
     // MARK: Saving
@@ -61,25 +97,39 @@ final class Store: ObservableObject {
         }
     }
 
-    // MARK: Queue
+    // MARK: Queue (results are cached; the cache is cleared whenever data changes)
+
+    private func passes(_ job: Job) -> Bool {
+        if let cached = passCache[job.id] { return cached }
+        let result = Matching.passes(job, criteria: data.criteria, ratings: data.companyRatings)
+        passCache[job.id] = result
+        return result
+    }
+
+    func fit(_ job: Job) -> Int {
+        if let cached = fitCache[job.id] { return cached }
+        let result = Matching.fit(job, include: data.criteria.includeKeywords, skills: data.fitSkills)
+        fitCache[job.id] = result
+        return result
+    }
 
     var queue: [Job] {
-        let c = data.criteria
-        let items = data.jobs.filter {
-            $0.status == .new && Matching.passes($0, criteria: c, ratings: data.companyRatings)
-        }
-        return Matching.sorted(items, mode: c.sortMode, include: c.includeKeywords, skills: data.fitSkills)
+        if let cached = queueCache { return cached }
+        let items = data.jobs.filter { $0.status == .new && passes($0) }
+        let sorted = Matching.sorted(items, mode: data.criteria.sortMode, fitOf: { fit($0) })
+        queueCache = sorted
+        return sorted
     }
 
     var approved: [Job] { data.jobs.filter { $0.status == .approved } }
     var undesired: [Job] { data.jobs.filter { $0.status == .undesired } }
 
-    /// New jobs that loaded but are filtered out by the current criteria.
+    /// New jobs that are stored but filtered out by the current criteria.
     var hiddenCount: Int {
-        let c = data.criteria
-        return data.jobs.filter {
-            $0.status == .new && !Matching.passes($0, criteria: c, ratings: data.companyRatings)
-        }.count
+        if let cached = hiddenCache { return cached }
+        let count = data.jobs.filter { $0.status == .new && !passes($0) }.count
+        hiddenCache = count
+        return count
     }
 
     var dueFollowUps: [Application] {
@@ -90,10 +140,6 @@ final class Store: ObservableObject {
 
     var needsAnswer: [AnswerEntry] {
         data.answers.filter { $0.answer.trimmingCharacters(in: .whitespaces).isEmpty && !$0.perApplication }
-    }
-
-    func fit(_ job: Job) -> Int {
-        Matching.fit(job, include: data.criteria.includeKeywords, skills: data.fitSkills)
     }
 
     var applicantName: String {
@@ -125,8 +171,11 @@ final class Store: ObservableObject {
     // MARK: Jobs
 
     func refresh() async {
+        if isRefreshing { return }
         isRefreshing = true
         lastError = nil
+        criteriaChangedSinceRefresh = false
+
         var found: [Job] = []
         var errors: [String] = []
         for board in data.boards {
@@ -136,13 +185,29 @@ final class Store: ObservableObject {
                 errors.append("\(board.displayName): \(error.localizedDescription)")
             }
         }
+
+        // Filter off the main thread, and only keep postings that match, so thousands of
+        // irrelevant listings are never stored or scanned again.
+        let candidates = found
+        let criteria = data.criteria
+        let ratings = data.companyRatings
+        let kept = await Task.detached(priority: .userInitiated) {
+            candidates.filter { Matching.passes($0, criteria: criteria, ratings: ratings) }
+        }.value
+
         var jobs = data.jobs
+        if errors.isEmpty {
+            jobs = jobs.filter { $0.status != .new || $0.source == "Added by me" }
+        }
         var known = Set(jobs.map { $0.id })
-        for j in found where !known.contains(j.id) {
+        for j in kept where !known.contains(j.id) {
             jobs.append(j)
             known.insert(j.id)
         }
         data.jobs = jobs
+
+        lastFetchTotal = found.count
+        lastFetchKept = kept.count
         if !errors.isEmpty {
             lastError = errors.joined(separator: "\n")
         }

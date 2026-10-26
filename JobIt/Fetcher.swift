@@ -67,7 +67,10 @@ enum JobFetcher {
         let r = try JSONDecoder().decode(GHResponse.self, from: data)
         let iso = ISO8601DateFormatter()
         return r.jobs.map { j in
-            let body = stripHTML(j.content ?? "")
+            let raw = j.content ?? ""
+            // Pay is read from the full text; only a short excerpt is kept to stay light on memory.
+            let salary = guessSalaryMin(raw)
+            let body = String(stripHTML(String(raw.prefix(8000))).prefix(2500))
             return Job(
                 id: "gh-\(token)-\(j.id)",
                 title: j.title,
@@ -78,7 +81,7 @@ enum JobFetcher {
                 source: "Greenhouse",
                 postedAt: j.updated_at.flatMap { iso.date(from: $0) },
                 applicants: nil,
-                salaryMin: guessSalaryMin(body),
+                salaryMin: salary,
                 status: .new
             )
         }
@@ -89,7 +92,9 @@ enum JobFetcher {
         let data = try await load("https://api.lever.co/v0/postings/\(token)?mode=json")
         let postings = try JSONDecoder().decode([LeverPosting].self, from: data)
         return postings.map { p in
-            let body = p.descriptionPlain ?? ""
+            let raw = p.descriptionPlain ?? ""
+            let salary = guessSalaryMin(raw)
+            let body = String(raw.prefix(2500))
             return Job(
                 id: "lv-\(token)-\(p.id)",
                 title: p.text,
@@ -100,7 +105,7 @@ enum JobFetcher {
                 source: "Lever",
                 postedAt: p.createdAt.map { Date(timeIntervalSince1970: $0 / 1000) },
                 applicants: nil,
-                salaryMin: guessSalaryMin(body),
+                salaryMin: salary,
                 status: .new
             )
         }

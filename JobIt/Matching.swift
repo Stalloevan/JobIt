@@ -9,26 +9,20 @@ enum Matching {
         company.lowercased().trimmingCharacters(in: .whitespaces)
     }
 
+    /// Cheap checks on short fields run first so most postings are rejected before their
+    /// description is ever scanned.
     static func passes(_ j: Job, criteria c: Criteria, ratings: [String: Double]) -> Bool {
-        let text = searchText(j)
         let title = j.title.lowercased()
         let company = j.company.lowercased()
+        let loc = j.location.lowercased()
 
         for b in c.blockedCompanies where !b.isEmpty && company.contains(b.lowercased()) {
-            return false
-        }
-        for term in c.blockedTerms where !term.isEmpty && text.contains(term.lowercased()) {
             return false
         }
         for k in c.excludeKeywords where !k.isEmpty && title.contains(k.lowercased()) {
             return false
         }
-        if !c.includeKeywords.isEmpty {
-            let hit = c.includeKeywords.contains { !$0.isEmpty && text.contains($0.lowercased()) }
-            if !hit { return false }
-        }
 
-        let loc = j.location.lowercased()
         let isRemote = loc.contains("remote") || title.contains("remote")
         if c.remoteOnly {
             if !isRemote { return false }
@@ -47,6 +41,16 @@ enum Matching {
             } else if !c.allowUnrated {
                 return false
             }
+        }
+
+        // Description-based checks, only for postings that survived the cheap ones.
+        let text = title + " " + company + " " + loc + " " + j.descriptionText.lowercased()
+        if !c.includeKeywords.isEmpty {
+            let hit = c.includeKeywords.contains { !$0.isEmpty && text.contains($0.lowercased()) }
+            if !hit { return false }
+        }
+        for term in c.blockedTerms where !term.isEmpty && text.contains(term.lowercased()) {
+            return false
         }
         return true
     }
@@ -71,10 +75,11 @@ enum Matching {
         j.applicants ?? Int.max
     }
 
-    static func sorted(_ jobs: [Job], mode: SortMode, include: [String], skills: [String]) -> [Job] {
+    /// `fitOf` is supplied by the caller so fit scores can be cached.
+    static func sorted(_ jobs: [Job], mode: SortMode, fitOf: (Job) -> Int) -> [Job] {
         var scored: [(job: Job, fit: Int)] = []
         for j in jobs {
-            scored.append((job: j, fit: fit(j, include: include, skills: skills)))
+            scored.append((job: j, fit: fitOf(j)))
         }
         scored.sort { a, b in
             switch mode {
