@@ -1,0 +1,35 @@
+name: Discover boards
+
+on:
+  schedule:
+    - cron: '41 6 * * 1'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['data/discover-run']
+
+permissions:
+  contents: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find and verify boards
+        run: python3 scripts/discover.py
+
+      - name: Save board list
+        run: |
+          git config user.name "jobit-feed"
+          git config user.email "feed@users.noreply.github.com"
+          git add data/boards.json data/discovery_report.json
+          if git diff --cached --quiet; then
+            echo "No change to the board list."
+          else
+            git commit -m "Update board list"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
