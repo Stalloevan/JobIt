@@ -53,7 +53,7 @@ final class Store: ObservableObject {
             defaults.set(true, forKey: "jobit.migrated.v13")
             // v1.2 saved every fetched posting with its full text. Keep only jobs you acted on, shrunk.
             var kept: [Job] = []
-            for var j in data.jobs where j.status != .new || j.isManual {
+            for var j in data.jobs where j.status != .new || !j.isBoardJob {
                 j.descriptionText = String(j.descriptionText.prefix(2500))
                 kept.append(j)
             }
@@ -197,7 +197,7 @@ final class Store: ObservableObject {
 
         var jobs = data.jobs
         if errors.isEmpty {
-            jobs = jobs.filter { $0.status != .new || $0.isManual }
+            jobs = jobs.filter { !($0.status == .new && $0.isBoardJob) }
         }
         var known = Set(jobs.map { $0.id })
         for j in kept where !known.contains(j.id) {
@@ -214,6 +214,30 @@ final class Store: ObservableObject {
         isRefreshing = false
     }
 
+    /// Adds jobs read from Indeed that match your criteria. Indeed jobs from an earlier import that
+    /// you have not acted on are replaced, so the queue never fills up with stale listings.
+    /// Returns how many matching jobs were added.
+    func importIndeed(_ scraped: [Job]) async -> Int {
+        if scraped.isEmpty { return 0 }
+        let candidates = scraped
+        let criteria = data.criteria
+        let ratings = data.companyRatings
+        let kept = await Task.detached(priority: .userInitiated) {
+            candidates.filter { Matching.passes($0, criteria: criteria, ratings: ratings) }
+        }.value
+
+        var jobs = data.jobs.filter { !($0.status == .new && $0.id.hasPrefix("in-")) }
+        var known = Set(jobs.map { $0.id })
+        var added = 0
+        for j in kept where !known.contains(j.id) {
+            jobs.append(j)
+            known.insert(j.id)
+            added += 1
+        }
+        data.jobs = jobs
+        return added
+    }
+
     private func setStatus(_ ids: Set<String>, _ status: JobStatus) {
         var jobs = data.jobs
         for i in jobs.indices where ids.contains(jobs[i].id) {
@@ -228,7 +252,7 @@ final class Store: ObservableObject {
     func markUndesired(_ job: Job) { setStatus([job.id], .undesired) }
     func restore(_ job: Job) { setStatus([job.id], .new) }
 
-    /// Adds a job you found yourself (pasted link, or saved from the LinkedIn/Indeed browser).
+    /// Adds a job you found yourself (pasted link, or saved from the Indeed browser).
     /// Links to the same posting are matched, so saving twice never creates a duplicate.
     func addManual(title: String, company: String, url: String, location: String) {
         let n = JobSites.normalize(url)

@@ -76,6 +76,7 @@ extension WebController {
 struct WebContainer: UIViewRepresentable {
     let url: URL
     let controller: WebController
+    var onLoaded: (() -> Void)? = nil
 
     func makeUIView(context: Context) -> WKWebView {
         let wv = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
@@ -89,9 +90,19 @@ struct WebContainer: UIViewRepresentable {
 
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeCoordinator() -> Coordinator { Coordinator(onLoaded: onLoaded) }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+        let onLoaded: (() -> Void)?
+
+        init(onLoaded: (() -> Void)?) {
+            self.onLoaded = onLoaded
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            onLoaded?()
+        }
+
         func webView(
             _ webView: WKWebView,
             decidePolicyFor navigationAction: WKNavigationAction,

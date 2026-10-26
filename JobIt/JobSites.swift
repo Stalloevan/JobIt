@@ -1,32 +1,19 @@
 import Foundation
 
-/// LinkedIn and Indeed have no public job feed, so jobs are found by searching inside the app's
-/// browser and saving the ones you open. These helpers build the searches and clean up links.
 enum JobSites {
-    static func linkedInSearch(keywords: String, location: String, easyApplyOnly: Bool) -> URL? {
-        var c = URLComponents(string: "https://www.linkedin.com/jobs/search/")
-        var items = [
-            URLQueryItem(name: "keywords", value: keywords),
-            URLQueryItem(name: "location", value: location),
-            URLQueryItem(name: "f_TPR", value: "r604800"),
-            URLQueryItem(name: "f_E", value: "1,2"),
-            URLQueryItem(name: "sortBy", value: "DD")
-        ]
-        if easyApplyOnly {
-            items.append(URLQueryItem(name: "f_AL", value: "true"))
-        }
-        c?.queryItems = items
-        return c?.url
-    }
-
-    static func indeedSearch(keywords: String, location: String) -> URL? {
+    /// Indeed search for the last 7 days, newest first. `start` is the result offset (10 per page).
+    static func indeedSearch(keywords: String, location: String, start: Int = 0) -> URL? {
         var c = URLComponents(string: "https://www.indeed.com/jobs")
-        c?.queryItems = [
+        var items = [
             URLQueryItem(name: "q", value: keywords),
             URLQueryItem(name: "l", value: location),
             URLQueryItem(name: "fromage", value: "7"),
             URLQueryItem(name: "sort", value: "date")
         ]
+        if start > 0 {
+            items.append(URLQueryItem(name: "start", value: String(start)))
+        }
+        c?.queryItems = items
         return c?.url
     }
 
@@ -44,20 +31,6 @@ enum JobSites {
             query.first { $0.name == name }?.value
         }
 
-        if host.contains("linkedin.com") {
-            var jobID: String?
-            if let v = value("currentJobId"), !v.isEmpty {
-                jobID = v
-            } else if comps.path.contains("/jobs/view/") {
-                let runs = comps.path.split(whereSeparator: { !$0.isNumber }).map(String.init).filter { $0.count >= 6 }
-                jobID = runs.last
-            }
-            if let id = jobID {
-                return ("li-" + id, "https://www.linkedin.com/jobs/view/" + id, "LinkedIn")
-            }
-            return (fallbackID, trimmed, "LinkedIn")
-        }
-
         if host.contains("indeed.com") {
             if let v = value("jk") ?? value("vjk"), !v.isEmpty {
                 return ("in-" + v, "https://www.indeed.com/viewjob?jk=" + v, "Indeed")
@@ -70,8 +43,8 @@ enum JobSites {
 }
 
 extension Job {
-    /// Jobs you added or saved yourself are never dropped when the queue refreshes.
-    var isManual: Bool {
-        id.hasPrefix("manual-") || id.hasPrefix("li-") || id.hasPrefix("in-")
+    /// Postings fetched from company boards. Only these are replaced when the board queue refreshes.
+    var isBoardJob: Bool {
+        id.hasPrefix("gh-") || id.hasPrefix("lv-")
     }
 }

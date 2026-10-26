@@ -42,8 +42,8 @@ private struct LeverCategories: Decodable {
     let location: String?
 }
 
-/// Reads the public job-board APIs that Greenhouse and Lever offer. LinkedIn and Indeed have no
-/// public feed, so jobs from those arrive through "Add a job" instead.
+/// Reads the public job-board APIs that Greenhouse and Lever offer. Indeed jobs are read by the
+/// in-app importer instead (see IndeedImport.swift).
 enum JobFetcher {
     static func fetch(_ board: Board) async throws -> [Job] {
         switch board.kind {

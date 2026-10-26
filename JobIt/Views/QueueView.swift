@@ -36,7 +36,7 @@ struct QueueView: View {
                         Button {
                             showFind = true
                         } label: {
-                            Label("Find on LinkedIn or Indeed", systemImage: "magnifyingglass")
+                            Label("Import from Indeed", systemImage: "arrow.down.circle")
                         }
                         Button {
                             showAdd = true
@@ -58,7 +58,7 @@ struct QueueView: View {
                 }
             }
             .sheet(isPresented: $showAdd) { AddJobView() }
-            .sheet(isPresented: $showFind) { FindOnSitesView() }
+            .sheet(isPresented: $showFind) { IndeedImportView() }
             .fullScreenCover(isPresented: $applying) {
                 ApplyFlowView(jobs: store.approved)
             }
@@ -282,7 +282,7 @@ struct AddJobView: View {
                         }
                     }
                 } footer: {
-                    Text("Paste a LinkedIn, Indeed or recruiter link. It goes straight to your approved list.")
+                    Text("Paste an Indeed or recruiter link. It goes straight to your approved list.")
                 }
             }
             .navigationTitle("Add a job")

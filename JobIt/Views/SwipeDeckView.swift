@@ -276,10 +276,10 @@ struct EmptyQueueView: View {
                 Task { await store.refresh() }
             }
             .buttonStyle(.borderedProminent)
-            Button("Find on LinkedIn or Indeed") {
+            Button("Import from Indeed") {
                 showFind = true
             }
         }
-        .sheet(isPresented: $showFind) { FindOnSitesView() }
+        .sheet(isPresented: $showFind) { IndeedImportView() }
     }
 }

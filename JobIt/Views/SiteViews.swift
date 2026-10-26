@@ -14,69 +14,6 @@ struct CapturedJob: Identifiable {
     var url: String
 }
 
-/// Pick keywords and a place, then search LinkedIn or Indeed inside the app.
-struct FindOnSitesView: View {
-    @EnvironmentObject var store: Store
-    @Environment(\.dismiss) private var dismiss
-    @AppStorage("findKeywords") private var keywords = ""
-    @AppStorage("findLocation") private var location = "Rhode Island"
-    @AppStorage("findEasyApply") private var easyApply = true
-    @State private var target: BrowserTarget?
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Search for") {
-                    TextField("Keywords", text: $keywords, axis: .vertical)
-                        .textInputAutocapitalization(.never)
-                    TextField("Location", text: $location)
-                }
-
-                Section {
-                    Toggle("LinkedIn: Easy Apply only", isOn: $easyApply)
-                } footer: {
-                    Text("Easy Apply jobs are applied to inside LinkedIn, so you are never sent to another site.")
-                }
-
-                Section {
-                    Button {
-                        if let url = JobSites.linkedInSearch(keywords: keywords, location: location, easyApplyOnly: easyApply) {
-                            target = BrowserTarget(url: url, name: "LinkedIn")
-                        }
-                    } label: {
-                        Label("Search LinkedIn", systemImage: "magnifyingglass")
-                    }
-                    Button {
-                        if let url = JobSites.indeedSearch(keywords: keywords, location: location) {
-                            target = BrowserTarget(url: url, name: "Indeed")
-                        }
-                    } label: {
-                        Label("Search Indeed", systemImage: "magnifyingglass")
-                    }
-                } footer: {
-                    Text("Sign in once and the app remembers it. Open a job, then tap \"Save this job\". Saved jobs go straight to your approved list.")
-                }
-            }
-            .navigationTitle("Find jobs")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
-            }
-            .onAppear {
-                if keywords.isEmpty {
-                    let terms = store.data.criteria.includeKeywords.prefix(4).map { "\"" + $0 + "\"" }
-                    keywords = terms.joined(separator: " OR ")
-                }
-            }
-            .fullScreenCover(item: $target) { t in
-                SiteBrowserView(url: t.url, siteName: t.name)
-            }
-        }
-    }
-}
-
 struct SiteBrowserView: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss

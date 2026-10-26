@@ -193,7 +193,7 @@ struct BoardsView: View {
             } header: {
                 Text("Add a company")
             } footer: {
-                Text("The token is the last part of the company's careers link: boards.greenhouse.io/TOKEN or jobs.lever.co/TOKEN. LinkedIn and Indeed have no public feed, so add those jobs by link from the Queue menu.")
+                Text("The token is the last part of the company's careers link: boards.greenhouse.io/TOKEN or jobs.lever.co/TOKEN. Indeed jobs come in through Import from Indeed in the Queue menu.")
             }
         }
         .navigationTitle("Job boards")
