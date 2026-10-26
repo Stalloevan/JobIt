@@ -53,7 +53,7 @@ final class Store: ObservableObject {
             defaults.set(true, forKey: "jobit.migrated.v13")
             // v1.2 saved every fetched posting with its full text. Keep only jobs you acted on, shrunk.
             var kept: [Job] = []
-            for var j in data.jobs where j.status != .new || j.source == "Added by me" {
+            for var j in data.jobs where j.status != .new || j.isManual {
                 j.descriptionText = String(j.descriptionText.prefix(2500))
                 kept.append(j)
             }
@@ -197,7 +197,7 @@ final class Store: ObservableObject {
 
         var jobs = data.jobs
         if errors.isEmpty {
-            jobs = jobs.filter { $0.status != .new || $0.source == "Added by me" }
+            jobs = jobs.filter { $0.status != .new || $0.isManual }
         }
         var known = Set(jobs.map { $0.id })
         for j in kept where !known.contains(j.id) {
@@ -228,15 +228,24 @@ final class Store: ObservableObject {
     func markUndesired(_ job: Job) { setStatus([job.id], .undesired) }
     func restore(_ job: Job) { setStatus([job.id], .new) }
 
+    /// Adds a job you found yourself (pasted link, or saved from the LinkedIn/Indeed browser).
+    /// Links to the same posting are matched, so saving twice never creates a duplicate.
     func addManual(title: String, company: String, url: String, location: String) {
+        let n = JobSites.normalize(url)
+        if let existing = data.jobs.first(where: { $0.id == n.id }) {
+            if existing.status != .applied {
+                setStatus([existing.id], .approved)
+            }
+            return
+        }
         let job = Job(
-            id: "manual-" + UUID().uuidString,
+            id: n.id,
             title: title,
             company: company,
             location: location,
-            url: url,
+            url: n.url,
             descriptionText: "",
-            source: "Added by me",
+            source: n.source,
             postedAt: Date(),
             applicants: nil,
             salaryMin: nil,

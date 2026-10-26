@@ -41,6 +41,36 @@ final class WebController: ObservableObject {
     }
 }
 
+struct CapturedRaw: Codable {
+    let title: String
+    let company: String
+    let location: String
+    let url: String
+}
+
+extension WebController {
+    /// Reads the job on the current page (title, company, location, link) with capture.js.
+    func capture() async -> CapturedRaw? {
+        guard let wv = webView,
+              let scriptURL = Bundle.main.url(forResource: "capture", withExtension: "js"),
+              let script = try? String(contentsOf: scriptURL, encoding: .utf8) else {
+            return nil
+        }
+        let call = script + "\n;window.__jobitCapture();"
+        return await withCheckedContinuation { (cont: CheckedContinuation<CapturedRaw?, Never>) in
+            wv.evaluateJavaScript(call) { value, _ in
+                guard let text = value as? String,
+                      let bytes = text.data(using: .utf8),
+                      let result = try? JSONDecoder().decode(CapturedRaw.self, from: bytes) else {
+                    cont.resume(returning: nil)
+                    return
+                }
+                cont.resume(returning: result)
+            }
+        }
+    }
+}
+
 /// A web view that keeps every application inside the app: new-window links load in the same
 /// view, and links that would hand off to another app (universal links, custom schemes) are blocked.
 struct WebContainer: UIViewRepresentable {

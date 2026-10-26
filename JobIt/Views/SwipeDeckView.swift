@@ -245,6 +245,7 @@ struct JobCard: View {
 
 struct EmptyQueueView: View {
     @EnvironmentObject var store: Store
+    @State private var showFind = false
 
     private var message: String {
         if store.data.boards.isEmpty {
@@ -275,6 +276,10 @@ struct EmptyQueueView: View {
                 Task { await store.refresh() }
             }
             .buttonStyle(.borderedProminent)
+            Button("Find on LinkedIn or Indeed") {
+                showFind = true
+            }
         }
+        .sheet(isPresented: $showFind) { FindOnSitesView() }
     }
 }

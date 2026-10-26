@@ -5,6 +5,7 @@ struct QueueView: View {
     @AppStorage("queueCardMode") private var cardMode = true
     @State private var applying = false
     @State private var showAdd = false
+    @State private var showFind = false
     @State private var didAutoRefresh = false
 
     var body: some View {
@@ -33,9 +34,14 @@ struct QueueView: View {
                             Label("Approve all matches", systemImage: "checkmark.circle")
                         }
                         Button {
+                            showFind = true
+                        } label: {
+                            Label("Find on LinkedIn or Indeed", systemImage: "magnifyingglass")
+                        }
+                        Button {
                             showAdd = true
                         } label: {
-                            Label("Add a job", systemImage: "plus")
+                            Label("Add a job by link", systemImage: "plus")
                         }
                         Button {
                             Task { await store.refresh() }
@@ -52,6 +58,7 @@ struct QueueView: View {
                 }
             }
             .sheet(isPresented: $showAdd) { AddJobView() }
+            .sheet(isPresented: $showFind) { FindOnSitesView() }
             .fullScreenCover(isPresented: $applying) {
                 ApplyFlowView(jobs: store.approved)
             }
@@ -269,8 +276,13 @@ struct AddJobView: View {
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                    PasteButton(payloadType: String.self) { strings in
+                        if let first = strings.first {
+                            url = first
+                        }
+                    }
                 } footer: {
-                    Text("Use this for jobs from LinkedIn, Indeed or a recruiter. It goes straight to your approved list.")
+                    Text("Paste a LinkedIn, Indeed or recruiter link. It goes straight to your approved list.")
                 }
             }
             .navigationTitle("Add a job")
