@@ -6,31 +6,31 @@
     },
     "job-boards.greenhouse.io": {
       "http": 200,
-      "slugs": 8905
+      "slugs": 8945
     },
     "jobs.lever.co": {
       "http": 0,
       "slugs": 0
     },
     "jobs.ashbyhq.com": {
-      "http": 200,
-      "slugs": 6578
+      "http": 0,
+      "slugs": 0
     },
     "jobs.smartrecruiters.com": {
       "http": 200,
-      "slugs": 639
+      "slugs": 641
     }
   },
   "alive": {
-    "ashby": 2452,
-    "greenhouse": 5064,
-    "lever": 15,
-    "smartrecruiters": 110
+    "ashby": 2415,
+    "greenhouse": 5078,
+    "lever": 14,
+    "smartrecruiters": 111
   },
   "candidates": {
-    "greenhouse": 13327,
-    "ashby": 6611,
-    "smartrecruiters": 666,
+    "greenhouse": 13365,
+    "ashby": 2490,
+    "smartrecruiters": 668,
     "lever": 41
   },
   "seeds": 229
